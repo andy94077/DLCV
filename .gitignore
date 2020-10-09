@@ -1,5 +1,8 @@
 .vscode/
 hw1/p2_data/
+hw1/1-*.jpg
+hw1/2-*.png
+hw1/3-*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
