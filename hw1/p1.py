@@ -3,7 +3,7 @@ from sklearn.cluster import KMeans
 import cv2
 
 def run_kmeans(X, K):
-    X_ravel = X.reshape(-1, 3)
+    X_ravel = X.reshape(-1, X.shape[-1])
     if isinstance(K, int):
         K = [K]
     transformed_images = []
@@ -21,4 +21,10 @@ K = [2, 4, 8, 16, 32]
 transformed_images = run_kmeans(image, K)
 for img, k in zip(transformed_images, K):
     cv2.imwrite(f'1-1_{k}.jpg', img)
+
+# (2)
+image_with_XY = np.concatenate([image, np.array([[i, j] for i in range(image.shape[0]) for j in range(image.shape[1])]).reshape(image.shape[:-1] + (-1,))], axis=-1)
+transformed_images = run_kmeans(image_with_XY, K)
+for img, k in zip(transformed_images, K):
+    cv2.imwrite(f'1-2_{k}.jpg', img[...,:3])
 
