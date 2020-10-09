@@ -8,16 +8,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-def load_data(path):
-    with os.scandir(path) as it:
-        paths = [entry.path for entry in it if entry.name.endswith('.png')]
-    X = np.array([cv2.imread(path, cv2.IMREAD_GRAYSCALE) for path in paths], np.float64)
-    Y = np.array([int(os.path.basename(path).split('_')[0]) for path in paths])
-    idx = np.argsort(Y)
-    X, Y = X[idx].reshape((40, 10) + X.shape[1:]), Y[idx].reshape((40, 10))
-
-    trainX, testX = X[:,:-1].reshape((-1,) + X.shape[2:]), X[:, -1]
-    trainY, testY = Y[:,:-1].ravel(), Y[:, -1]
+def load_data(data_dir):
+    trainX = np.array([cv2.imread(os.path.join(data_dir, f'{person}_{i}.png'), cv2.IMREAD_GRAYSCALE) for person in range(1, 41) for i in range(1, 10)], np.float64)
+    trainY = np.arange(40 * 9) // 9
+    
+    testX = np.array([cv2.imread(os.path.join(data_dir, f'{person}_10.png'), cv2.IMREAD_GRAYSCALE) for person in range(1, 41)], np.float64)
+    testY = np.arange(40)
     return (trainX, trainY), (testX, testY)
 
 def get_cross_validation_data(X, Y, nfold):
@@ -57,14 +53,18 @@ print('mse:', ('{:.03f} ' * imgs.shape[0]).format(*np.mean(np.square(trainX[9:10
 nfold = 3
 train_coef = (trainX - mean_face) @ model.components_.T
 best_score, best_params = 0., {'k': None, 'n': None}
-for k in [1, 3, 5]:
-    for n in [3, 50, 170]:
+for n in [3, 50, 170]:
+    for k in [1, 3, 5]:
         print(f'k: {k}, n: {n}')
         train_acc, valid_acc = 0., 0.
-        for (coef, Y), (valid_coef, validY) in get_cross_validation_data(train_coef, trainY, nfold):
-            imgs = coef[:, :n] @ model.components_[:n] + mean_face
+        # for (coef, Y), (valid_coef, validY) in get_cross_validation_data(train_coef, trainY, nfold):
+        for (coef, Y), (valid_coef, validY) in get_cross_validation_data(trainX, trainY, nfold):
+            m = PCA(n).fit(coef)
+            imgs = m.inverse_transform(m.transform(coef))
+            # imgs = coef[:, :n] @ model.components_[:n] + mean_face
             knn = KNeighborsClassifier(k).fit(imgs, Y)
-            valid_imgs = valid_coef[:,:n] @ model.components_[:n] + mean_face
+            valid_imgs = m.inverse_transform(m.transform(valid_coef))
+            # valid_imgs = valid_coef[:,:n] @ model.components_[:n] + mean_face
 
             train_score = knn.score(imgs, Y)
             valid_score = knn.score(valid_imgs, validY)
@@ -81,7 +81,12 @@ print(f'best score: {best_score / nfold:.05f}, best k: {best_params["k"]}, best 
 
 # (5)
 test_coef = (testX - mean_face) @ model.components_.T
-test_imgs = test_coef[:, :best_params['n']] @ model.components_[:best_params['n']] + mean_face
-knn = KNeighborsClassifier(best_params['k']).fit(test_imgs, testY)
+# m = PCA(50).fit(trainX)
+m = PCA(best_params['n']).fit(trainX)
+imgs = m.inverse_transform(m.transform(trainX))
+knn = KNeighborsClassifier(best_params['k']).fit(imgs, trainY)
+
+test_imgs = m.inverse_transform(m.transform(testX))
+# test_imgs = test_coef[:, :best_params['n']] @ model.components_[:best_params['n']] + mean_face
 print(f'test acc: {knn.score(test_imgs, testY):.05f}')
 
