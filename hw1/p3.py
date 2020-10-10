@@ -11,9 +11,11 @@ cv2.imwrite('3-1.png', blur)
 kx = np.array([[-0.5, 0., 0.5]])
 ky = np.array([[-0.5], [0], [0.5]])
 img_x = cv2.filter2D(img, -1, kx)
+img_x_norm = (img_x - img_x.min()) / (img_x.max() - img_x.min()) * 128
 img_y = cv2.filter2D(img, -1, ky)
-cv2.imwrite('3-2_x.png', np.clip(img_x * 10, 0, 255).astype(np.uint8))
-cv2.imwrite('3-2_y.png', np.clip(img_y * 10, 0, 255).astype(np.uint8))
+img_y_norm = (img_y - img_y.min()) / (img_y.max() - img_y.min()) * 128
+cv2.imwrite('3-2_x.png', np.clip(img_x_norm + 50, 0, 255).astype(np.uint8))
+cv2.imwrite('3-2_y.png', np.clip(img_y_norm + 50, 0, 255).astype(np.uint8))
 
 # (3)
 grad_img = np.sqrt(img_x ** 2 + img_y ** 2)
